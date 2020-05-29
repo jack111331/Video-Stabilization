@@ -45,7 +45,7 @@ ret,frame = cap.read()
 while(ret != False):
   frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
   # check for threshold number of feature points
-  if(p0.shape[0]<=50):
+  if(p0.shape[0]<=60):
     refreshindex.append(idx)
     p0 = cv2.goodFeaturesToTrack(frame_gray, mask = None, **feature_params)
     print('------------------------Refresh---------------------------')
@@ -103,7 +103,7 @@ for i in range(len(refreshindex)):
 t_mat = np.zeros((2*len(paths),n_frames))
 for k in range(len(shiftidx)-1):
   for i in range(2*shiftidx[k],2*shiftidx[k+1],2):
-    if len(paths[np.floor(i/2)]) <= 10:
+    if len(paths[np.floor(i/2)]) <= 20:
       continue 
     for j in range(len(paths[np.floor(i/2)])):
       t_mat[i,j+refreshindex[k]] = paths[np.floor(i/2)][j][0]
@@ -111,4 +111,6 @@ for k in range(len(shiftidx)-1):
       
 plt.figure(figsize=(30,40))
 plt.imshow(t_mat, cmap = 'gray')
+
+#%% Moving Factorization
 
