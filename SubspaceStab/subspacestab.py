@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #%% video loading
-cap = cv2.VideoCapture('./videos/0.avi')
+cap = cv2.VideoCapture('./videos/18AF.avi')
 n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print(cap.isOpened())
 
@@ -114,3 +114,43 @@ plt.imshow(t_mat, cmap = 'gray')
 
 #%% Moving Factorization
 
+W = np.zeros_like(t_mat)
+W[t_mat != 0] = 1
+r = 9
+k = 50
+m = 20
+i_frame = 0
+e_frame = i_frame + k
+while e_frame < n_frames:
+    M = t_mat[:,i_frame:e_frame] # M(2n x k)
+    M0 = np.zeros((2*m,k))
+    idx = 0
+    sel_idx = []
+    for i in range(0,len(t_mat),2):
+        if ((t_mat[i,i_frame:e_frame]>0).sum() == k):
+            M0[idx] = t_mat[i,i_frame:e_frame]
+            M0[idx+1] = t_mat[i+1,i_frame:e_frame]
+            sel_idx.append(idx) 
+            idx += 2
+            if idx == 2*m:
+                break
+    U, s, V = np.linalg.svd(M0, full_matrices=False)
+    s = np.sqrt(np.diag(s))
+    C1 = U.dot(s)
+    E1 = s.dot(V)
+    M_ = np.zeros((len(t_mat)-2*m,k))
+    idx = 0
+    for i in range(0,len(t_mat),2):
+        if i in sel_idx or i-1 in sel_idx:
+            continue
+        else:
+            M_[idx] = t_mat[i,i_frame:e_frame]
+            M_[idx+1] = t_mat[i+1,i_frame:e_frame]
+            idx += 2
+    C_ =  M_.dot((E1.T).dot(np.linalg.inv(E1.dot(E1.T))))
+    
+    break
+    
+    
+
+ 
