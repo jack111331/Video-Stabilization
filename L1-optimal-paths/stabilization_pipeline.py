@@ -87,6 +87,8 @@ trajectory = np.cumsum(transforms, axis=0)
 # print(trajectory)
 
 
+# This needs to be replaced by the matrix multiplaication
+# P_t = C_t B_t in the general case
 def movingAverage(curve, radius):
     window_size = 2 * radius + 1
     # Define the filter
@@ -105,7 +107,7 @@ def smooth(trajectory):
     smoothed_trajectory = np.copy(trajectory)
     # Filter the x, y and angle curves
     for i in range(3):
-        smoothed_trajectory[:,i] = movingAverage(trajectory[:, i], radius=2)
+        smoothed_trajectory[:,i] = movingAverage(trajectory[:, i], radius=3)
 
     return smoothed_trajectory
 
