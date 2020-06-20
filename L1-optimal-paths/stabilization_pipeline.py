@@ -59,7 +59,7 @@ for i in range(n_frames - 2):
     # Find transformation matrix
     # This transform function is deprecated
     # use cv::estimateAffine2D, cv::estimateAffinePartial2D
-    m = cv.estimateRigidTransform(prev_pts, curr_pts, fullAffine=False)  # will only work with OpenCV-3 or less
+    m, _ = cv.estimateAffine2D(prev_pts, curr_pts)  # will only work with OpenCV-3 or less
 
     # Extract translation
     dx = m[0, 2]
