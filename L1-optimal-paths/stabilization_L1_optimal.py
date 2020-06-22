@@ -1,7 +1,6 @@
 import numpy as np
-from pulp import *
 import cv2 as cv
-
+from lpp import *
 
 # Read input video
 from pulp import LpProblem
@@ -89,7 +88,7 @@ trajectory = np.cumsum(transforms, axis=0)
 #print(trajectory.shape)
 # print(trajectory)
 
-
+stabilized_traj = stabilize(n_frames, F_t)
 # This needs to be replaced by the matrix multiplaication
 # P_t = C_t B_t in the general case
 def movingAverage(curve, radius):

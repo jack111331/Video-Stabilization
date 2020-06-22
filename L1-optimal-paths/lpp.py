@@ -1,7 +1,25 @@
 from pulp import *
+import numpy as np
+
+
+# Predefined weights
+w1 = 10
+w2 = 1
+w3 = 100
+# Dimension of stabilization
+N = 6
+
+# To Do
+# Replace MDP variables by Stacbilization variables
 
 
 def stabilize(n_frames, frame_pair_transforms):
+    # Create coefficient vector of size 3*n_frames*N
+    # N = 6
+    W1 = np.repeat(w1, n_frames*6)
+    W2 = np.repeat(w2, n_frames*6)
+    W3 = np.repeat(w3, n_frames*6)
+    c = np.concatenate(W1, W2, W3)
     # Apply linear programming to look for optimal stabilization + retargetting transform
     # Initialise a PuLP Lp solver minimizer
     derivative_sum = LpProblem("stabilize", LpMinimize)
