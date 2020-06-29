@@ -1,6 +1,5 @@
 import numpy as np
 import cv2 as cv
-from lpp import *
 
 # Read input video
 from pulp import LpProblem
