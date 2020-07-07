@@ -23,15 +23,17 @@ N = 6
 # These stabilized parameters are a flattened version of the transforms $B_t$
 # Which can then be applied to stabilize trajectory
 def stabilize(n_frames, frame_pair_transforms):
-    # Create weight vector $c$ to cast objective in the form $c^{T}e$
+    # Create parts of weight vector $c$ to cast objective in the form $c^{T}e$
+    W1 = np.repeat(w1, n_frames*N)
+    W2 = np.repeat(w2, n_frames*N)
+    W3 = np.repeat(w3, n_frames*N)
     # Create coefficient vector of size 3*n_frames*N
-    W1 = np.repeat(w1, n_frames*6)
-    W2 = np.repeat(w2, n_frames*6)
-    W3 = np.repeat(w3, n_frames*6)
     c = np.concatenate(W1, W2, W3)
     # Apply linear programming to look for optimal stabilization + retargetting transform
     # Initialise a PuLP LP problem solver - minimizer
     prob = lpp.LpProblem("stabilize", lpp.LpMinimize)
+    # Create a collection of $e$ vectors of size same as $c$
+    # Step 1: Assemble postfix identifiers for each of the 3*n_frames*N variables
     # Array to associate an index with every values(s) s \in S, variable
     values = np.arange(mdp.nstates)
     # Declare required number of slack variables
