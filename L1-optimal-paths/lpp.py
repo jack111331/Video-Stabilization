@@ -22,14 +22,16 @@ N = 6
 # camera trajectory parameters $\{p_t\}_{t=1}^{n}$
 # These stabilized parameters are a flattened version of the transforms $B_t$
 # Which can then be applied to stabilize trajectory
-def stabilize(n_frames, frame_pair_transforms):
+def stabilize(F_transforms, im_size):
+    # Get the number of frames in sequence to be stabilized
+    n_frames = len(F_transforms)
     # Create parts of weight vector $c$ to cast objective in the form $c^{T}e$
     W1 = np.repeat(w1, n_frames*N)
     W2 = np.repeat(w2, n_frames*N)
     W3 = np.repeat(w3, n_frames*N)
     # Create coefficient vector of size 3*n_frames*N
     c = np.concatenate(W1, W2, W3)
-    # Apply linear programming to look for optimal stabilization + retargetting transform
+    # Apply linear programming to look for optimal stabilization + re-targeting transform
     # Initialise a PuLP LP problem solver - minimizer
     prob = lpp.LpProblem("stabilize", lpp.LpMinimize)
     # Create a collection of $e$ vectors of size same as $c$
