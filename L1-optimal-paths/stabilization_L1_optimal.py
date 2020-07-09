@@ -4,6 +4,9 @@ import cv2 as cv
 # Read input video
 from pulp import LpProblem
 
+# Crop ratio used for crop window float < 1.0
+crop_ratio = 0.8
+
 cap = cv.VideoCapture('0.avi')
 
 # Get frame count

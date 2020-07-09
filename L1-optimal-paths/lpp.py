@@ -17,12 +17,37 @@ w3 = 100
 N = 6
 
 
+# Takes im_shape, a tuple and
+# crop ratio, a float < 1.0
+def get_crop_window(im_shape, crop_ratio):
+    # Get center of original frames
+    img_ctr_x = round(im_shape[1] / 2)
+    img_ctr_y = round(im_shape[0] / 2)
+    # Get the dimensions w and h of the crop window
+    # Crop ratio is a float < 1.0 since the crop window
+    # needs to be smaller than the raw frames
+    crop_w = round(im_shape[1] * crop_ratio)
+    crop_h = round(im_shape[0] * crop_ratio)
+    # Get upper left corner of centered crop window
+    crop_x = round(img_ctr_x - crop_w / 2)
+    crop_y = round(img_ctr_y - crop_h / 2)
+    # Assemble list of corner points into a list of tuples
+    corner_points = [
+        (crop_x, crop_y),
+        (crop_x + crop_w, crop_y),
+        (crop_x, crop_y + crop_h),
+        (crop_x + crop_w, crop_y + crop_h)
+    ]
+    # Return corner points of crop window
+    return corner_points
+
+
 # Function that takes the number of frames $n$ and the frame pair transforms
 # $F_1, F_2, \ldots, F_n$ as input and returns the stabilized
 # camera trajectory parameters $\{p_t\}_{t=1}^{n}$
 # These stabilized parameters are a flattened version of the transforms $B_t$
 # Which can then be applied to stabilize trajectory
-def stabilize(F_transforms, im_size):
+def stabilize(F_transforms, im_shape, crop_ratio):
     # Get the number of frames in sequence to be stabilized
     n_frames = len(F_transforms)
     # Create parts of weight vector $c$ to cast objective in the form $c^{T}e$
@@ -44,6 +69,9 @@ def stabilize(F_transforms, im_size):
     # Add objective function (sum) to solver, pulp auto recognises this
     # to be the objective because it is added first
     prob += lpp.lpSum([val_dict[s] for s in values]), "Sum V(s), for all s in S"
+    # Get corners of decided crop window for inclusion constraints
+    # The corner points are $c_i = (c_i^x, c_i^y)$
+    corner_points = get_crop_window(im_shape, crop_ratio)
     # Add primary constraints to solver in a nested loop
     for s in range(mdp.nstates):
         # One constraint for every action, from class notes
@@ -82,4 +110,3 @@ def stabilize(F_transforms, im_size):
     return values_opt, pi_opt
     # Return the computed transforms
     return Bt
-
