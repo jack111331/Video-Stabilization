@@ -15,8 +15,35 @@ w3 = 100
 # 4 --> Adds scaling
 # 6 --> Full affine transform adds shear and aspect ratio
 N = 6
+# As described in the paper the affine/rotational terms are
+# weighted 100x more than the translational terms
+# Format for parameter vector (dx_t, dy_t, a_t, b_t, c_t, d_t)'
+# For 1st derivative
+c1 = [1, 1, 100, 100, 100, 100]
+# For 2nd derivative
+c2 = c1
+# For 3rd derivative
+c3 = c1
+# Lower and Upper bounds for *Proximity Constraints*
+# Sequence of variables
+# [a_t, b_t, c_t, d_t, (b_t + c_t), (a_t - d_t)]
+prox_lb = [0.9, -0.1, -0.1, 0.9, -0.1, -0.05]
+prox_ub = [1.1, 0.1, 0.1, 1.1, 0.1, 0.05]
 
 
+# A multiply matrices method needed to form constraints
+# for the lpp optimization problem, matrix multiples A and B
+# m --> 2x3 B --> 3x3
+def multiply_matrices(m, B):
+    C =
+    for i in range(3):
+        for j in range(3):
+            for k in range(3):
+
+
+# Flattens a homogeneous transform matrix to its lpp friendly N x 1 form
+def flatten_N(A):
+    return [A[2][0], A[2][1], A[0][0], A[1][0], A]
 # Takes im_shape, a tuple and
 # crop ratio, a float < 1.0
 def get_crop_window(im_shape, crop_ratio):
@@ -48,17 +75,48 @@ def get_crop_window(im_shape, crop_ratio):
 # These stabilized parameters are a flattened version of the transforms $B_t$
 # Which can then be applied to stabilize trajectory
 def stabilize(F_transforms, im_shape, crop_ratio):
+    # Create lpp minimization problem object
+    prob = lpp.LpProblem("stabilize", lpp.LpMinimize)
     # Get the number of frames in sequence to be stabilized
     n_frames = len(F_transforms)
-    # Create parts of weight vector $c$ to cast objective in the form $c^{T}e$
-    W1 = np.repeat(w1, n_frames*N)
-    W2 = np.repeat(w2, n_frames*N)
-    W3 = np.repeat(w3, n_frames*N)
-    # Create coefficient vector of size 3*n_frames*N
-    c = np.concatenate(W1, W2, W3)
+    # Declare structures to be used later
+    time_steps = np.arange(n_frames)
+    dims = np.arange(N)
+    # Slack variables for 1st derivative, all positive
+    e1 = lpp.LpVariable.dicts("e1", ((i, j) for i in time_steps for j in dims), lowBound=0.0)
+    # Slack variables for 2nd derivative, all positive
+    e2 = lpp.LpVariable.dicts("e2", ((i, j) for i in time_steps for j in dims), lowBound=0.0)
+    # Slack variables for 3rd derivative, all positive
+    e3 = lpp.LpVariable.dicts("e3", ((i, j) for i in time_steps for j in dims), lowBound=0.0)
+    # Stabilization parameters for each frame, all positive
+    p = lpp.LpVariable.dicts("p", ((i, j) for i in time_steps for j in dims))
+    # Construct objective to be minimized using e1, e2 and e3
+    prob += w1 * lpp.lpSum([e1[i, j] * c1[j] for i in time_steps for j in dims]) + \
+            w2 * lpp.lpSum([e2[i, j] * c2[j] for i in time_steps for j in dims]) + \
+            w3 * lpp.lpSum([e3[i, j] * c3[j] for i in time_steps for j in dims])2
+    # Apply smoothness constraints on the slack variables e1, e2 and e3 using params p
+    for i in range(n_frames - 3):
+        B_t = [p(k, 3) p(k, 5) 0; p(k, 4) p(k, 6) 0; p(k, 1) p(k, 2) 1];
+        B_t1 = [p(k + 1, 3) p(k + 1, 5) 0; p(k + 1, 4) p(k + 1, 6) 0; p(k + 1, 1) p(k + 1, 2) 1];
+        B_t2 = [p(k + 2, 3) p(k + 2, 5) 0; p(k + 2, 4) p(k + 2, 6) 0; p(k + 2, 1) p(k + 2, 2) 1];
+        B_t3 = [p(k + 3, 3) p(k + 3, 5) 0; p(k + 3, 4) p(k + 3, 6) 0; p(k + 3, 1) p(k + 3, 2) 1];
+        # Depending on in what form F_transforms come to us use raw p vectors to create smoothness constraints
+        # No need to assemble p in matrix form
+        res_t = F_transforms{k + 1} * B_t1 - B_t;
+        res_t1 = t_transforms{k + 2} * B_t2 - B_t1;
+        res_t2 = t_transforms{k + 3} * B_t3 - B_t2;
+
+        res_t = [res_t(3, 1) res_t(3, 2) res_t(1, 1) res_t(2, 1) res_t(1, 2) res_t(2, 2)];
+        res_t1 = [res_t1(3, 1) res_t1(3, 2) res_t1(1, 1) res_t1(2, 1) res_t1(1, 2) res_t1(2, 2)];
+        res_t2 = [res_t2(3, 1) res_t2(3, 2) res_t2(1, 1) res_t2(2, 1) res_t2(1, 2) res_t2(2, 2)];
+
+        # Apply the smoothness constraints on these slack variables
+        for j in range(N):
+            -e1(i, j) <= res_t <= e1(i, j);
+            -e2(i, j) <= res_t1 - res_t <= e2(i, j);
+            -e3(i, j) <= res_t2 - 2*res_t1 + res_t <= e3(i, j);
     # Apply linear programming to look for optimal stabilization + re-targeting transform
-    # Initialise a PuLP LP problem solver - minimizer
-    prob = lpp.LpProblem("stabilize", lpp.LpMinimize)
+
     # Create a collection of $e$ vectors of size same as $c$
     # Step 1: Assemble postfix identifiers for each of the 3*n_frames*N variables
     # Array to associate an index with every values(s) s \in S, variable

@@ -34,7 +34,8 @@ prev_gray = cv.cvtColor(prev, cv.COLOR_BGR2GRAY)
 
 # Pre-define transformation-store array
 # Uses 3 parameters since it is purely a coordinate transform
-transforms = np.zeros((n_frames - 1, 3), np.float32)
+# A collection of homography matrices
+transforms = np.zeros((3, 3, n_frames - 1), np.float32)
 
 for i in range(n_frames - 2):
     # Detect feature points in previous frame
@@ -64,10 +65,9 @@ for i in range(n_frames - 2):
     # This transform function is deprecated
     # use cv::estimateAffine2D, cv::estimateAffinePartial2D
     m, _ = cv.estimateAffine2D(prev_pts, curr_pts)  # will only work with OpenCV-3 or less
-
-    # Extract translation
-    dx = m[0, 2]
-    dy = m[1, 2]
+    print(m.shape)
+    # Pad the transformation matrix m with [0 0 1] to make a homography
+    # Then take a transpose to create the right multiplied matrix
 
     # Extract rotation angle
     da = np.arctan2(m[1, 0], m[0, 0])
