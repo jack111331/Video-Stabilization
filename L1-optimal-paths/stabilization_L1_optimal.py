@@ -1,12 +1,49 @@
 import numpy as np
 import cv2 as cv
+from lpp import stabilize
 
-# Read input video
-from pulp import LpProblem
 
 # Crop ratio used for crop window float < 1.0
 crop_ratio = 0.8
 
+
+# Takes im_shape, a tuple and
+# crop ratio, a float < 1.0
+def get_crop_window(im_shape):
+    # Get center of original frames
+    img_ctr_x = round(im_shape[1] / 2)
+    img_ctr_y = round(im_shape[0] / 2)
+    # Get the dimensions w and h of the crop window
+    # Crop ratio is a float < 1.0 since the crop window
+    # needs to be smaller than the raw frames
+    crop_w = round(im_shape[1] * crop_ratio)
+    crop_h = round(im_shape[0] * crop_ratio)
+    # Get upper left corner of centered crop window
+    crop_x = round(img_ctr_x - crop_w / 2)
+    crop_y = round(img_ctr_y - crop_h / 2)
+    # Assemble list of corner points into a list of tuples
+    corner_points = [
+        (crop_x, crop_y),
+        (crop_x + crop_w, crop_y),
+        (crop_x, crop_y + crop_h),
+        (crop_x + crop_w, crop_y + crop_h)
+    ]
+    # Return corner points of crop window
+    return corner_points
+
+
+# This needs to be replaced by the matrix multiplication
+# P_t = C_t B_t in the general case
+def smoothen(trajectory):
+    smoothed_trajectory = np.copy(trajectory)
+    # Filter the x, y and angle curves
+    for i in range(3):
+        smoothed_trajectory[:,i] = movingAverage(trajectory[:, i], radius=3)
+
+    return smoothed_trajectory
+
+
+# Read input video
 cap = cv.VideoCapture('0.avi')
 
 # Get frame count
@@ -34,92 +71,50 @@ prev_gray = cv.cvtColor(prev, cv.COLOR_BGR2GRAY)
 
 # Pre-define transformation-store array
 # Uses 3 parameters since it is purely a coordinate transform
-# A collection of homography matrices
-transforms = np.zeros((3, 3, n_frames - 1), np.float32)
+# A collection of n_frames homography matrices
+F_transforms = np.zeros((n_frames, 3, 3), np.float32)
+# Initialise all transformations with Identity matrix
+F_transforms[:, :, :] = np.eye(3)
 
-for i in range(n_frames - 2):
+for i in range(n_frames):
     # Detect feature points in previous frame
     prev_pts = cv.goodFeaturesToTrack(prev_gray, maxCorners=200, qualityLevel=0.01,
                                       minDistance=30, blockSize=3)
-
     # Read next frame
     success, curr = cap.read()
     if not success:
         break
-
     # Convert to grayscale
     curr_gray = cv.cvtColor(curr, cv.COLOR_BGR2GRAY)
-
     # Calculate optical flow (i.e. track feature points)
     curr_pts, status, err = cv.calcOpticalFlowPyrLK(prev_gray, curr_gray, prev_pts, None)
-
     # Sanity check
     assert prev_pts.shape == curr_pts.shape
-
     # Filter only valid points
     idx = np.where(status == 1)[0]
     prev_pts = prev_pts[idx]
     curr_pts = curr_pts[idx]
-
-    # Find transformation matrix
-    # This transform function is deprecated
-    # use cv::estimateAffine2D, cv::estimateAffinePartial2D
+    # Find transformation matrix for full 6DOF affine transform
     m, _ = cv.estimateAffine2D(prev_pts, curr_pts)  # will only work with OpenCV-3 or less
-    print(m.shape)
-    # Pad the transformation matrix m with [0 0 1] to make a homography
-    # Then take a transpose to create the right multiplied matrix
-
-    # Extract rotation angle
-    da = np.arctan2(m[1, 0], m[0, 0])
-
-    # Store transformation
-    transforms[i] = [dx, dy, da]
-
+    # print(m.shape) --> (2, 3) since 6 DOF full affine transform
+    # Add current transformation matrix $F_t$ to array
+    # $F_t$ is a right multiplied homogeneous affine transform
+    F_transforms[i, :, :2] = m.T
     # Move to next frame
     prev_gray = curr_gray
-
     # print("Frame: " + str(i) + "/" + str(n_frames) + " -  Tracked points : " + str(len(prev_pts)))
-
-#print(transforms)
-
-####
-# Trajectory calculation, integrates changes to give current value of
-# x, y, theta
-#print(transforms.shape)
-trajectory = np.cumsum(transforms, axis=0)
-#print(trajectory.shape)
-# print(trajectory)
-
-stabilized_traj = stabilize(n_frames, F_t)
-# This needs to be replaced by the matrix multiplaication
-# P_t = C_t B_t in the general case
-def movingAverage(curve, radius):
-    window_size = 2 * radius + 1
-    # Define the filter
-    f = np.ones(window_size)/window_size
-    # Add padding to the boundaries
-    curve_pad = np.lib.pad(curve, (radius, radius), 'edge')
-    # Apply convolution
-    curve_smoothed = np.convolve(curve_pad, f, mode='same')
-    # Remove padding
-    curve_smoothed = curve_smoothed[radius:-radius]
-    # return smoothed curve
-    return curve_smoothed
-
-
-def smooth(trajectory):
-    smoothed_trajectory = np.copy(trajectory)
-    # Filter the x, y and angle curves
-    for i in range(3):
-        smoothed_trajectory[:,i] = movingAverage(trajectory[:, i], radius=3)
-
-    return smoothed_trajectory
-
-
-smoothed_trajectory = smooth(trajectory)
-
+# Get corners of decided crop window for inclusion constraints
+# Input: input frame shape tuple. The corner points are $c_i = (c_i^x, c_i^y)$
+corner_points = get_crop_window(prev.shape)
+# Get stabilization transforms B_t by processing motion transition transforms F_t
+B_transforms = stabilize(F_transforms, corner_points)
+# Compute accumulated trajectory in matrix form using iterative right multiplications
+C_trajectory = np.zeros
+# Apply computed stabilization transforms to raw camera trajectory in
+# N (Number of free parameters, 6 for full affine) dimensional parameter space
+P_trajectory = smooth(C_trajectory)
 # Calculate difference in smoothed_trajectory and trajectory
-difference = smoothed_trajectory - trajectory
+difference = P_trajectory - C_trajectory
 
 # Calculate newer transformation array
 transforms_smooth = transforms + difference
@@ -175,3 +170,11 @@ for i in range(n_frames - 2):
     cv.waitKey(10)
     out.write(frame_out)
 
+##
+# Compare x, y components of motion of camera in original and stabilized trajectories and plot
+# Trajectory calculation, integrates changes to give current value of
+# x, y, theta
+#print(transforms.shape)
+trajectory = np.cumsum(transforms, axis=0)
+#print(trajectory.shape)
+# print(trajectory)
