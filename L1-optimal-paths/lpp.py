@@ -1,5 +1,6 @@
 import pulp as lpp
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 # Predefined weights, choice same as the one taken in the paper
@@ -74,7 +75,7 @@ def get_crop_window(im_shape, crop_ratio=0.8):
         (crop_x, crop_y + crop_h),
         (crop_x + crop_w, crop_y + crop_h)
     ]
-    print(corner_points)
+    # print(corner_points)
     # Return corner points of crop window
     return corner_points
 
@@ -199,6 +200,15 @@ if __name__ == '__main__':
     # Apply transform to C_trajectory to get P_trajectory
     for i in range(10):
         P_trajectory[i, :, :] = C_trajectory[i, :, :] @ B_transforms[i, :, :]
-    for i in range(10):
-        print(C_trajectory[i, :, :])
-        print(P_trajectory[i, :, :])
+    # Starting coordinate (0, 0) in homogeneous system
+    origin = np.array([0, 0, 1])
+    # Evolution of coordinate of camera trajectory under original scheme
+    evolution_og = origin @ C_trajectory
+    # Evolution of origin under stabilized trajectory
+    evolution_stab = origin @ P_trajectory
+    plt.figure()
+    plt.plot(evolution_og[:, 1])
+    plt.plot(evolution_stab[:, 1])
+    plt.title('Original vs Stab x')
+    plt.show()
+    plt.close()

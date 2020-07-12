@@ -155,7 +155,6 @@ for i in range(n_frames - 2):
 
     # Apply affine wrapping to the given frame
     frame_stabilized = cv.warpAffine(frame, m, (w, h))
-
     # Fix border artifacts
     frame_stabilized = fixBorder(frame_stabilized)
 
