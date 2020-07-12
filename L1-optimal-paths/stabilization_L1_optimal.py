@@ -3,35 +3,6 @@ import cv2 as cv
 from lpp import stabilize
 
 
-# Crop ratio used for crop window float < 1.0
-crop_ratio = 0.8
-
-
-# Takes im_shape, a tuple and
-# crop ratio, a float < 1.0
-def get_crop_window(im_shape):
-    # Get center of original frames
-    img_ctr_x = round(im_shape[1] / 2)
-    img_ctr_y = round(im_shape[0] / 2)
-    # Get the dimensions w and h of the crop window
-    # Crop ratio is a float < 1.0 since the crop window
-    # needs to be smaller than the raw frames
-    crop_w = round(im_shape[1] * crop_ratio)
-    crop_h = round(im_shape[0] * crop_ratio)
-    # Get upper left corner of centered crop window
-    crop_x = round(img_ctr_x - crop_w / 2)
-    crop_y = round(img_ctr_y - crop_h / 2)
-    # Assemble list of corner points into a list of tuples
-    corner_points = [
-        (crop_x, crop_y),
-        (crop_x + crop_w, crop_y),
-        (crop_x, crop_y + crop_h),
-        (crop_x + crop_w, crop_y + crop_h)
-    ]
-    # Return corner points of crop window
-    return corner_points
-
-
 # This needs to be replaced by the matrix multiplication
 # P_t = C_t B_t in the general case
 def smoothen(trajectory):
@@ -99,15 +70,12 @@ for i in range(n_frames):
     # print(m.shape) --> (2, 3) since 6 DOF full affine transform
     # Add current transformation matrix $F_t$ to array
     # $F_t$ is a right multiplied homogeneous affine transform
-    F_transforms[i, :, :2] = m.T
+    F_transforms[i + 1, :, :2] = m.T
     # Move to next frame
     prev_gray = curr_gray
     # print("Frame: " + str(i) + "/" + str(n_frames) + " -  Tracked points : " + str(len(prev_pts)))
-# Get corners of decided crop window for inclusion constraints
-# Input: input frame shape tuple. The corner points are $c_i = (c_i^x, c_i^y)$
-corner_points = get_crop_window(prev.shape)
 # Get stabilization transforms B_t by processing motion transition transforms F_t
-B_transforms = stabilize(F_transforms, corner_points)
+B_transforms = stabilize(F_transforms, prev.shape)
 # Compute accumulated trajectory in matrix form using iterative right multiplications
 C_trajectory = np.zeros
 # Apply computed stabilization transforms to raw camera trajectory in
