@@ -155,7 +155,7 @@ def stabilize(F_transforms, frame_shape):
             prob += p[t1, 1] + p[t1, 4] * cx + p[t1, 5] * cy >= 0
             prob += p[t1, 1] + p[t1, 4] * cx + p[t1, 5] * cy <= frame_shape[0]
     # Print formulation to a text file
-    prob.writeLP("formulation.lp")
+    # prob.writeLP("formulation.lp")
     # Apply linear programming to look for optimal stabilization + re-targeting transform
     prob.solve()
     # Pre allocate array for holding computed optimal stabilization transforms
