@@ -2,19 +2,17 @@ import numpy as np
 import cv2 as cv
 from lpp import stabilize
 from matplotlib import pyplot as plt
+import argparse
 
 
-# # This needs to be replaced by the matrix multiplication
-# # P_t = C_t B_t in the general case
-# def smoothen(trajectory):
-#     smoothed_trajectory = np.copy(trajectory)
-#     # Filter the x, y and angle curves
-#     for i in range(3):
-#         smoothed_trajectory[:,i] = movingAverage(trajectory[:, i], radius=3)
-#
-#     return smoothed_trajectory
-
+# Command line input
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", action="store", dest="file")
+args = parser.parse_args()
+# file = args.file
+file = 
 crop_ratio = 0.7
+in_name = file.split('/')[-1].split('.')[0]
 
 
 # Takes im_shape, a tuple and
@@ -36,7 +34,7 @@ def get_corners(im_shape):
 
 
 # Read input video
-cap = cv.VideoCapture('/home/ishank/Desktop/Regular/2.avi')
+cap = cv.VideoCapture(file)
 
 # Get frame count
 n_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
@@ -140,7 +138,7 @@ frame = frame[frame_limits[0]:frame_limits[1], frame_limits[2]:frame_limits[3]]
 # Write the frame to the file
 frame_out = cv.hconcat([frame, frame_stabilized])
 # Set up output video stream
-out = cv.VideoWriter('video_out.avi', fourcc, fps, (frame_out.shape[1], frame_out.shape[0]))
+out = cv.VideoWriter("results/" + in_name + "_stabilized.avi", fourcc, fps, (frame_out.shape[1], frame_out.shape[0]))
 # Reset stream to first frame
 cap.set(cv.CAP_PROP_POS_FRAMES, 0)
 
@@ -166,8 +164,8 @@ for i in range(n_frames - 2):
 
     # frame_out = cv.resize(frame_out, (frame_out.shape[1], frame_out.shape[0]))
 
-    cv.imshow("Before and After", frame_out)
-    cv.waitKey(10)
+    # cv.imshow("Before and After", frame_out)
+    # cv.waitKey(10)
     out.write(frame_out)
 print(frame_out.shape)
 print((frame_limits[1] - frame_limits[0]), frame_limits[3] - frame_limits[2])
