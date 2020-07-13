@@ -9,8 +9,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", action="store", dest="file")
 args = parser.parse_args()
-# file = args.file
-file = 
+file = args.file
 crop_ratio = 0.7
 in_name = file.split('/')[-1].split('.')[0]
 
@@ -114,14 +113,16 @@ plt.plot(evolution_og[:, 0])
 plt.plot(evolution_stab[:, 0])
 plt.title('Original vs Stab x')
 plt.legend(['Original', 'Stabilized'])
-plt.savefig('traj_x.png')
+plt.savefig("plots/" + in_name + "_traj_x.png")
+plt.close()
 
 plt.figure()
 plt.plot(evolution_og[:, 1])
 plt.plot(evolution_stab[:, 1])
 plt.title('Original vs Stab y')
 plt.legend(['Original', 'Stabilized'])
-plt.savefig('traj_y.png')
+plt.savefig("plots/" + in_name + "_traj_y.png")
+plt.close()
 
 # Get frame limits
 frame_limits = get_corners((w, h))
