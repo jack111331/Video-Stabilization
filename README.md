@@ -1,4 +1,4 @@
-# Deep Learning for Video Stabilization
+# Video Stabilization
 
 Problem Statement *
 Mention your problem statement as precisely as you can. This should clearly identify the input and output. Provide (clearly focused) links to images to your external document. We are expecting to see 4-6 statements. Don't forget to mention the supervision needed.
