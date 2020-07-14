@@ -13,6 +13,49 @@ def printProb(prob):
     print("Status:", pulp.LpStatus[prob.status])
 
 
+# Create a LP Minimization problem
+Lp_prob = LpProblem('Problem', LpMinimize)
+
+# Create problem Variables
+x = LpVariable("x", lowBound=0)  # Create a variable x >= 0
+y = LpVariable("y", lowBound=0)  # Create a variable y >= 0
+print(type(x))
+print(type(y))
+print("Value of x after declaration")
+print(type(value(x)))
+print(type(x.varValue))
+
+# Objective Function
+Lp_prob += 3 * x + 5 * y
+print("Value of x after adding to problem objective")
+print(type(value(x)))
+print(type(x.varValue))
+print(type(Lp_prob))
+# Constraints:
+Lp_prob += 2 * x + 3 * y >= 12
+Lp_prob += -x + y <= 3
+Lp_prob += x >= 4
+Lp_prob += y <= 3
+# Lp_prob += x + y == 2
+# Lp_prob += x + y == 3
+print("Value of x after adding constraints to problem")
+print(type(value(x)))
+print(type(x.varValue))
+
+# Display the problem
+print(Lp_prob)
+
+status = Lp_prob.solve()  # Solver
+print(LpStatus[status])  # The solution status
+
+# Printing the final solution
+print(value(x), value(y), value(Lp_prob.objective))
+# These are floats
+print("Final values of the variables x")
+print(type(value(x)))
+print(type(x.varValue))
+
+
 # A list of identifiers as strings
 # names = ['A', 'B', 'C', 'D', 'E']
 names = np.arange(5)
@@ -57,5 +100,5 @@ print(prob.variables())
 # print(a)
 # print(type(a))
 print(type(x))
-print(x[].varValue)
+print(x[0].varValue)
 print(type(value(x[0])))
