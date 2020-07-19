@@ -1,11 +1,14 @@
 # Video Stabilization
 
-Problem Statement *
-Mention your problem statement as precisely as you can. This should clearly identify the input and output. Provide (clearly focused) links to images to your external document. We are expecting to see 4-6 statements. Don't forget to mention the supervision needed.
+Methods Implemented:
+1. **Averaging based method:** The first and simplest methid considered is to simply smooth out the camera path using an averaging operation on the camera path. This asks like a low pass filter rejecting high frequency jitter.
+2. **L1 Optimal Camera Paths:** This method uses a Linear Programming formulation to smoothen out the camera path. It is successful in removing low frequency movements in addition to the high frequency movement. 
+3. **Subspace Video Stabilization:** 
+
 
 Videographers make use of camera stabilization gimbals to prevent physical disturbances from deteriorating their recorded footage. However, these equipment are not perfect in the sense that low frequency disturbances from actions such as walking, running or rolling on bumpy surfaces are not filtered out by such stabilization hardware.
 Due to these limitations of optical stabilization tools, and due to the fact that access to such tools is limited to professionals, software based video stabilization is desirable. 
-In particular, our project, in collaboration with SysCon ARMS (Autonomous Robots and Multi-robot Systems) Lab at IITB, aims to stabilize the output video stream from a mobile spherical robot - Picture of robot - https://www.sc.iitb.ac.in/embeddedLab.html.
+In particular, our project, in collaboration with SysCon ARMS (Autonomous Robots and Multi-robot Systems) Lab at IITB, aims to stabilize the output video stream from a mobile spherical robot - [Picture of robot](https://www.sc.iitb.ac.in/embeddedLab.html).
 
 The aim of the project is to compare the following strategies for video stabilization
 1. Use of L1 optimal camera paths - Grundmann et al. 2011
@@ -78,7 +81,3 @@ As per the training information presented in [3], the model should be trainable 
 What deliverable are you planning for April 3? *
 We won't hold you to it, but this April 3 deadline also has marks assigned.
 Although the 3rd April deadline was not implemented, an intermediate check-point for our team will be the implementation of references [1] and [2].
-
-
-
-

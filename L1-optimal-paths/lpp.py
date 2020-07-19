@@ -164,51 +164,12 @@ def stabilize(F_transforms, frame_shape):
     B_transforms[:, :, :] = np.eye(3)
     # If solution found
     if prob.status == 1:
-        print("Optimal solution found")
+        print("Solution converged")
         # Return the computed stabilization transforms
         for i in range(n_frames):
             B_transforms[i, :, :2] = np.array([[p[i, 2].varValue, p[i, 4].varValue],
                                                [p[i, 3].varValue, p[i, 5].varValue],
                                                [p[i, 0].varValue, p[i, 1].varValue]])
     else:
-        print("Error")
-        print("Status:", lpp.LpStatus[prob.status])
+        print("Error: Linear Programming problem status:", lpp.LpStatus[prob.status])
     return B_transforms
-
-
-# Check if stabilization works on dummy example
-if __name__ == '__main__':
-    n_frames = 10
-    # Create stationary (identity) camera trajectory and add random noise to it
-    F_transforms = np.zeros((n_frames, 3, 3), np.float32)
-    # Initialise all transformations with Identity matrix
-    F_transforms[:, :, :] = np.eye(3)
-    # Add zero mean random noise to transition matrices
-    F_transforms += np.random.normal(0, 0.01, (10, 3, 3))
-    F_transforms[0, :, :] = np.eye(3)
-    # print(F_transforms)
-    # Accumulate by right multiplication into C_trajectory
-    # $C_{t + 1} = C_t x F_t$
-    C_trajectory = F_transforms.copy()
-    for i in range(1, 10):
-        C_trajectory[i, :, :] = C_trajectory[i - 1, :, :] @ F_transforms[i, :, :]
-    # print(C_trajectory)
-    # Get stabilization transforms
-    B_transforms = stabilize(F_transforms, (1024, 720))
-    # print(B_transforms)
-    P_trajectory = C_trajectory.copy()
-    # Apply transform to C_trajectory to get P_trajectory
-    for i in range(10):
-        P_trajectory[i, :, :] = C_trajectory[i, :, :] @ B_transforms[i, :, :]
-    # Starting coordinate (0, 0) in homogeneous system
-    origin = np.array([0, 0, 1])
-    # Evolution of coordinate of camera trajectory under original scheme
-    evolution_og = origin @ C_trajectory
-    # Evolution of origin under stabilized trajectory
-    evolution_stab = origin @ P_trajectory
-    plt.figure()
-    plt.plot(evolution_og[:, 1])
-    plt.plot(evolution_stab[:, 1])
-    plt.title('Original vs Stab x')
-    plt.show()
-    plt.close()
