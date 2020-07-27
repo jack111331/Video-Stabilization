@@ -85,7 +85,12 @@ def get_crop_window(im_shape, crop_ratio=0.8):
 # camera trajectory parameters $\{p_t\}_{t=1}^{n}$
 # These stabilized parameters are a flattened version of the transforms $B_t$
 # Which can then be applied to stabilize trajectory
-def stabilize(F_transforms, frame_shape):
+# The first window variable checks if the window of frames being processed
+# for stabilization is the first among all the windows in case of pipelining
+# In the absence of pipelining this option is not needed
+# prev_frame_Bt is the stabilization transform from the last frame of the
+# previous window, which would be the frame preceding the first frame of the current window
+def stabilize(F_transforms, frame_shape, first_window=True, prev_frame_Bt=None):
     # Create lpp minimization problem object
     prob = lpp.LpProblem("stabilize", lpp.LpMinimize)
     # Get the number of frames in sequence to be stabilized
@@ -145,15 +150,24 @@ def stabilize(F_transforms, frame_shape):
         # For $a_t - d_t$
         prob += p[t1, 2] - p[t1, 5] >= -0.05
         prob += p[t1, 2] - p[t1, 5] <= 0.05
-    #     Inclusion Constraints
-    #     Based on the computation $(B_t)^{T} x [c_i^x, c_i^y]$ in homogeneous coordinates
-    #     Equivalent to equation 8 in the original paper where $p_t$ is an Nx1 column vector
-    #     Loop over all 4 corner points of centered crop window
+        # Inclusion Constraints
+        # Based on the computation $(B_t)^{T} x [c_i^x, c_i^y]$ in homogeneous coordinates
+        # Equivalent to equation 8 in the original paper where $p_t$ is an Nx1 column vector
+        # Loop over all 4 corner points of centered crop window
         for (cx, cy) in corner_points:
             prob += p[t1, 0] + p[t1, 2] * cx + p[t1, 3] * cy >= 0
             prob += p[t1, 0] + p[t1, 2] * cx + p[t1, 3] * cy <= frame_shape[1]
             prob += p[t1, 1] + p[t1, 4] * cx + p[t1, 5] * cy >= 0
             prob += p[t1, 1] + p[t1, 4] * cx + p[t1, 5] * cy <= frame_shape[0]
+    # Continuity constraints for ensuring continuity of the stabilized camera paths
+    # Get the flattened N x 1 stabilization transform for the last frame of the preceding window
+    if not first_window:
+        prob += p[0, 0] == prev_frame_Bt[2, 0]
+        prob += p[0, 1] == prev_frame_Bt[2, 1]
+        prob += p[0, 2] == prev_frame_Bt[0, 0]
+        prob += p[0, 3] == prev_frame_Bt[1, 0]
+        prob += p[0, 4] == prev_frame_Bt[0, 1]
+        prob += p[0, 5] == prev_frame_Bt[1, 1]
     # Print formulation to a text file
     # prob.writeLP("formulation.lp")
     # Apply linear programming to look for optimal stabilization + re-targeting transform
