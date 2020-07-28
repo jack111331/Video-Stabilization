@@ -28,7 +28,7 @@ lk_params = dict( winSize  = (15,15),
                   maxLevel = 2,
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 # Create some random colors
-color = np.random.randint(0,255,(200,3))
+# color = np.random.randint(0,255,(200,3))
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
 old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
@@ -79,14 +79,14 @@ paths = {}
 pthid = 0
 shiftidx = [0]
 for i in range(len(refreshindex)):
-  for j in range(len(trajectory_mat[refreshindex[i]])):
+  for j in range(len(trajectory_mat[refreshindex[i]])): #all paths starting after refresh
     end = 0
     if i == len(refreshindex)-1:
       end = len(trajectory_mat)
     else:
       end = refreshindex[i+1]
-    sigpth = []
-    sigpth.append([trajectory_mat[refreshindex[i]][0][0],trajectory_mat[refreshindex[i]][0][1]])  
+    sigpth = [] # one path starting after refresh
+    sigpth.append([trajectory_mat[refreshindex[i]][j][0],trajectory_mat[refreshindex[i]][j][1]])  # potential error point
     for k in range(refreshindex[i]+1,end):
       for l in range(len(trajectory_mat[k])):
         if j >= len(trajectory_mat[k]):
@@ -109,20 +109,22 @@ for k in range(len(shiftidx)-1):
       t_mat[i,j+refreshindex[k]] = paths[np.floor(i/2)][j][0]
       t_mat[i+1,j+refreshindex[k]] = paths[np.floor(i/2)][j][1]
       
-plt.figure(figsize=(30,40))
+plt.figure(figsize=(10,10))
 plt.imshow(t_mat, cmap = 'gray')
 
 #%% Moving Factorization
 
-W = np.zeros_like(t_mat)
-W[t_mat != 0] = 1
+filtered_tmat = np.zeros_like(t_mat)
 r = 9
 k = 50
 m = 20
+delta = 5
 i_frame = 0
 e_frame = i_frame + k
 while e_frame < n_frames:
     M = t_mat[:,i_frame:e_frame] # M(2n x k)
+    W = np.zeros_like(M)
+    W[M != 0] = 1
     M0 = np.zeros((2*m,k))
     idx = 0
     sel_idx = []
@@ -148,9 +150,38 @@ while e_frame < n_frames:
             M_[idx+1] = t_mat[i+1,i_frame:e_frame]
             idx += 2
     C_ =  M_.dot((E1.T).dot(np.linalg.inv(E1.dot(E1.T))))
+    # low pass filteing the eigen trajectories
+    K = np.eye(E1.shape[1])
+    Kf = np.eye(E1.shape[1])
+    for i in range(E1.shape[1]-1):
+        for j in range(E1.shape[1]):
+            if (K[i,j]==1):
+                Kf[(i+1)%50,j]=1
+      
+    Ef1 = np.dot(E1,Kf/2)
+    Ccomplete = np.zeros(((C1.shape[0]+C_.shape[0]),C1.shape[1]))
+    it1,it2 = 0,0
+    for i in range(0,len(Ccomplete),2):
+        if i in sel_idx:
+            Ccomplete[i] = C1[it1]
+            Ccomplete[i+1] = C1[it1+1]
+            it1 += 2
+        else:
+            Ccomplete[i] = C_[it2]
+            Ccomplete[i+1] = C_[it2+1]
+            it2 += 2
+        
+    Mf = np.dot(Ccomplete,Ef1)
     
-    break
+    filtered_tmat[:,i_frame:e_frame] = Mf*W
     
-    
+    i_frame += delta
+    e_frame += delta
+    if e_frame>t_mat.shape[1]:
+        e_frame = t_mat.shape[1]
+plt.figure(figsize=(10,10))
+plt.imshow(filtered_tmat, cmap = 'gray') # plot filtered trajectory matrix
 
- 
+#%% wrap the trajectory matrix to video 
+plt.figure(figsize=(10,10))
+plt.imshow(filtered_tmat-t_mat, cmap = 'gray')
