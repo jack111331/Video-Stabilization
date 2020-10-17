@@ -53,35 +53,9 @@ def plot_trajectory(og, stb, name):
     plt.close()
 
 
-def main(args):
-    file = args.file
-    # Extract input file name sans extension
-    in_name = file.split('/')[-1].split('.')[0]
-    # crop_ratio = 0.7
-    crop_ratio = args.crop_ratio
-    # Read input video
-    cap = cv.VideoCapture(file)
-    # Get frame count
-    n_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
-    print("Number of frames in file are {0}".format(n_frames))
-    # Get width and height of frames in video stream from cap object
-    w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
-    h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
-    # Define the codec for output video
-    fourcc = cv.VideoWriter_fourcc(*'MPEG')
-    # Get input fps, use same for output
-    fps = int(cap.get(cv.CAP_PROP_FPS))
-    # Pre-define transformation-store array
-    # Uses 3 parameters since it is purely a coordinate transform
-    # A collection of n_frames number of  homography matrices
-    F_transforms = np.zeros((n_frames, 3, 3), np.float32)
-    # Initialise all transformations with Identity matrix
-    F_transforms[:, :, :] = np.eye(3)
-    # Read first frame
-    _, prev = cap.read()
-    # Convert frame to grayscale for feature tracking using openCV
-    prev_gray = cv.cvtColor(prev, cv.COLOR_BGR2GRAY)
-    # Find the inter-frame transformations array F_transforms
+# Find the inter-frame transformations array F_transforms
+def get_inter_frame_transforms(cap, F_transforms, prev_gray):
+    n_frames = F_transforms.shape[0]
     for i in range(n_frames):
         # Detect feature points in previous frame (or 1st frame in 1st iteration)
         prev_pts = cv.goodFeaturesToTrack(prev_gray, maxCorners=200, qualityLevel=0.01,
@@ -113,6 +87,69 @@ def main(args):
         # Move to next frame
         prev_gray = curr_gray
         # print("Frame: " + str(i) + "/" + str(n_frames) + " -  Tracked points : " + str(len(prev_pts)))
+
+
+# Stabilize the video frame by frame using the obtained transforms and save it
+def write_output(cap, out, B_transforms, shape, frame_limits):
+    # Reset stream to first frame
+    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+    # print((w, h))
+    n_frames = B_transforms.shape[0]
+    # Write n_frames transformed frames
+    for i in range(n_frames):
+        # Read the first/next frame
+        success, frame = cap.read()
+        # If there is not next frame to read, exit display loop
+        if not success:
+            break
+        # print(frame.shape)
+        # Apply affine wrapping to the given frame
+        # Also convert to sta
+        frame_stabilized = cv.warpAffine(frame, B_transforms[i, :, :2].T, shape)
+        # Take centered window
+        frame_stabilized = frame_stabilized[frame_limits[0]:frame_limits[1], frame_limits[2]:frame_limits[3]]
+        frame = frame[frame_limits[0]:frame_limits[1], frame_limits[2]:frame_limits[3]]
+        # Write the frame to the file
+        frame_out = cv.hconcat([frame, frame_stabilized])
+        # If the image is too big, resize it.
+        # if frame_out.shape[1] > 1920:
+        # frame_out = cv.resize(frame_out, (frame_out.shape[1], frame_out.shape[0]))
+        # Display the result in a window before writing it to file
+        # cv.imshow("Before and After", frame_out)
+        # cv.waitKey(10)
+        out.write(frame_out)
+
+
+def main(args):
+    file = args.file
+    # Extract input file name sans extension
+    in_name = file.split('/')[-1].split('.')[0]
+    # crop_ratio = 0.7
+    crop_ratio = args.crop_ratio
+    # Read input video
+    cap = cv.VideoCapture(file)
+    # Get frame count
+    n_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
+    print("Number of frames in file are {0}".format(n_frames))
+    # Get width and height of frames in video stream from cap object
+    w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+    # Define the codec for output video
+    fourcc = cv.VideoWriter_fourcc(*'MPEG')
+    # Get input fps, use same for output
+    fps = int(cap.get(cv.CAP_PROP_FPS))
+    # Pre-define transformation-store array
+    # Uses 3 parameters since it is purely a coordinate transform
+    # A collection of n_frames number of  homography matrices
+    F_transforms = np.zeros((n_frames, 3, 3), np.float32)
+    # Initialise all transformations with Identity matrix
+    F_transforms[:, :, :] = np.eye(3)
+    # Read first frame
+    _, prev = cap.read()
+    # Convert frame to grayscale for feature tracking using openCV
+    prev_gray = cv.cvtColor(prev, cv.COLOR_BGR2GRAY)
+    # Find the inter-frame transformations array F_transforms
+    get_inter_frame_transforms(cap, F_transforms, prev_gray)
     # Get stabilization transforms B_t by processing motion transition transforms F_t
     B_transforms = stabilize(F_transforms, prev.shape)
     # Accumulate by right multiplication into C_trajectory
@@ -129,50 +166,24 @@ def main(args):
     # Apply transform to C_trajectory to get P_trajectory
     for i in range(n_frames):
         P_trajectory[i, :, :] = C_trajectory[i, :, :] @ B_transforms[i, :, :]
-    # Starting coordinate (0, 0) in homogeneous system
-    origin = np.array([0, 0, 1])
     # if the plotting camera trajectory flag is passed, plot trajectories
     if args.trajPlot:
+        # Starting coordinate (0, 0) in homogeneous system
+        origin = np.array([0, 0, 1])
         # Evolution of coordinate of camera trajectory under original scheme
         evolution_og = origin @ C_trajectory
         # Evolution of origin under stabilized trajectory
         evolution_stab = origin @ P_trajectory
         plot_trajectory(evolution_og, evolution_stab, in_name)
+    # print(frame_limits)
     # Get frame limits, i.e the coordinates of the corners under the
     # crop-ratio passed to the program
     frame_limits = get_corners((w, h), crop_ratio)
-    # print(frame_limits)
-    # Set up output video stream, the shape order is (cols, rows) instead of the usual (rows, cols)
+    # Object to write the output video
     out = cv.VideoWriter("results/{0}stb_L1optimal.avi".format(in_name),
-                         fourcc, fps, (2*(frame_limits[3] - frame_limits[2]), frame_limits[1] - frame_limits[0]))
-    # Reset stream to first frame
-    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    # print((w, h))
-    # Write n_frames - 1 transformed frames
-    for i in range(n_frames):
-        # Read the first/next frame
-        success, frame = cap.read()
-        # If there is not next frame to read, exit display loop
-        if not success:
-            break
-        # print(frame.shape)
-        # Apply affine wrapping to the given frame
-        # Also convert to sta
-        frame_stabilized = cv.warpAffine(frame, B_transforms[i, :, :2].T, (w, h))
-        # Take centered window
-        frame_stabilized = frame_stabilized[frame_limits[0]:frame_limits[1], frame_limits[2]:frame_limits[3]]
-        frame = frame[frame_limits[0]:frame_limits[1], frame_limits[2]:frame_limits[3]]
-        # Write the frame to the file
-        frame_out = cv.hconcat([frame, frame_stabilized])
-        # If the image is too big, resize it.
-        # if frame_out.shape[1] > 1920:
-        # frame_out = cv.resize(frame_out, (frame_out.shape[1], frame_out.shape[0]))
-        # Display the result in a window before writing it to file
-        # cv.imshow("Before and After", frame_out)
-        # cv.waitKey(10)
-        out.write(frame_out)
-    # print(frame_out.shape)
-    # print((frame_limits[1] - frame_limits[0]), frame_limits[3] - frame_limits[2])
+                         fourcc, fps, (2 * (frame_limits[3] - frame_limits[2]), frame_limits[1] - frame_limits[0]))
+    # Stabilize the video frame by frame using the obtained transforms and save it
+    write_output(cap, out, B_transforms, (w, h), frame_limits)
     return
 
 

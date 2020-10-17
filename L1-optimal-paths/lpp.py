@@ -1,6 +1,5 @@
 import pulp as lpp
 import numpy as np
-from matplotlib import pyplot as plt
 
 
 # Predefined weights, choice same as the one taken in the paper
