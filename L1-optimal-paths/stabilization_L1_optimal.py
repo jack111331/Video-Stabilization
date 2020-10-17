@@ -93,7 +93,6 @@ def get_inter_frame_transforms(cap, F_transforms, prev_gray):
 def write_output(cap, out, B_transforms, shape, frame_limits):
     # Reset stream to first frame
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    # print((w, h))
     n_frames = B_transforms.shape[0]
     # Write n_frames transformed frames
     for i in range(n_frames):
@@ -102,7 +101,6 @@ def write_output(cap, out, B_transforms, shape, frame_limits):
         # If there is not next frame to read, exit display loop
         if not success:
             break
-        # print(frame.shape)
         # Apply affine wrapping to the given frame
         # Also convert to sta
         frame_stabilized = cv.warpAffine(frame, B_transforms[i, :, :2].T, shape)
@@ -159,8 +157,6 @@ def main(args):
     for i in range(1, n_frames):
         # Right multiply transformations to accumulate all the changes into camera trajectory
         C_trajectory[i, :, :] = C_trajectory[i - 1, :, :] @ F_transforms[i, :, :]
-    # print(C_trajectory)
-    # print(B_transforms)
     # Repeat right multiplication procedure to obtain stabilized camera trajectory P
     P_trajectory = C_trajectory.copy()
     # Apply transform to C_trajectory to get P_trajectory
@@ -175,7 +171,6 @@ def main(args):
         # Evolution of origin under stabilized trajectory
         evolution_stab = origin @ P_trajectory
         plot_trajectory(evolution_og, evolution_stab, in_name)
-    # print(frame_limits)
     # Get frame limits, i.e the coordinates of the corners under the
     # crop-ratio passed to the program
     frame_limits = get_corners((w, h), crop_ratio)
