@@ -1,11 +1,10 @@
 import numpy as np
 import cv2 as cv
 from lpp import stabilize
-from matplotlib import pyplot as plt
 import argparse
 
 
-# Command line input
+# Command line inputs
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", action="store", dest="file")
 args = parser.parse_args()
@@ -188,5 +187,3 @@ for i in range(n_frames - 2):
     cv.imshow("Before and After", frame_out)
     cv.waitKey(10)
     out.write(frame_out)
-#print(frame_out.shape)
-#print((frame_limits[1] - frame_limits[0]), frame_limits[3] - frame_limits[2])
