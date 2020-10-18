@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
-from lpp import stabilize
+from L1optimal_lpp import stabilize
 import argparse
 
 
@@ -122,6 +122,7 @@ def write_output(cap, out, B_transforms, shape, frame_limits):
         return
 
 
+# Main function reads in the input, processes it and writes the output
 def main(args):
     file = args.file
     # Extract input file name sans extension
@@ -130,7 +131,7 @@ def main(args):
     crop_ratio = args.crop_ratio
     # Read input video
     cap = cv.VideoCapture(file)
-    # Get frame count
+    # Get frame count, possible apriori if reading a file
     n_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
     print("Number of frames in file are {0}".format(n_frames))
     # Get width and height of frames in video stream from cap object
@@ -191,6 +192,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Add input file path, default type is string
     parser.add_argument("-i", action="store", dest="file")
+    # Crop ratio to avoid black corners creeping into the main stabilized video frame area
     parser.add_argument("-crop-ratio", action="store", dest="crop_ratio", type=float)
     # Boolean argument that is True if the flag --trajPlot is passed
     parser.add_argument("--trajPlot", action="store_true")

@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv
-from lpp import stabilize
+from L1optimal_lpp import stabilize
 import argparse
 
 
