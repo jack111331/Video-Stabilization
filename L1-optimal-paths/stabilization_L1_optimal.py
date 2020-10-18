@@ -51,9 +51,11 @@ def plot_trajectory(og, stb, name):
     plt.legend(['Original', 'Stabilized'])
     plt.savefig("plots/{0}_traj_y.png".format(name))
     plt.close()
+    return
 
 
 # Find the inter-frame transformations array F_transforms
+# updates F_transforms array inplace
 def get_inter_frame_transforms(cap, F_transforms, prev_gray):
     n_frames = F_transforms.shape[0]
     for i in range(n_frames):
@@ -87,6 +89,7 @@ def get_inter_frame_transforms(cap, F_transforms, prev_gray):
         # Move to next frame
         prev_gray = curr_gray
         # print("Frame: " + str(i) + "/" + str(n_frames) + " -  Tracked points : " + str(len(prev_pts)))
+        return
 
 
 # Stabilize the video frame by frame using the obtained transforms and save it
@@ -116,6 +119,7 @@ def write_output(cap, out, B_transforms, shape, frame_limits):
         # cv.imshow("Before and After", frame_out)
         # cv.waitKey(10)
         out.write(frame_out)
+        return
 
 
 def main(args):
