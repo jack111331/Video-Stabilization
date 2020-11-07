@@ -1,24 +1,25 @@
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Queue
 import numpy as np
 
-Size = 128
+Size = 127
 
 
-def producer(conn):
+def producer(mp_queue):
     print("Child entered")
     window1 = np.arange(Size * Size).reshape((Size, Size))
+    print(window1.dtype)
     print("Array created")
-    conn.send(window1)
+    mp_queue.put(window1)
     print("Data added to Pipe")
     return
 
 
 if __name__ == '__main__':
-    conn1, conn2 = Pipe()
-    window_reader = Process(target=producer, args=(conn2,))
+    q = Queue()
+    window_reader = Process(target=producer, args=(q,))
     window_reader.start()
     window_reader.join()
     print("Child process exited, entered parent")
     # Acting like a consumer
-    a = conn1.recv()
+    a = q.get()
     print(a)

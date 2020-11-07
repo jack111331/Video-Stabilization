@@ -1,8 +1,9 @@
-import numpy as np
+import argparse
+from multiprocessing import Process
 import cv2 as cv
 import matplotlib.pyplot as plt
+import numpy as np
 from L1optimal_lpp import stabilize
-import argparse
 
 
 # Takes im_shape, a tuple and crop ratio, a float < 1.0
@@ -51,6 +52,16 @@ def plot_trajectory(og, stb, name):
     plt.legend(['Original', 'Stabilized'])
     plt.savefig("plots/{0}_traj_y.png".format(name))
     plt.close()
+    return
+
+
+# Reads in and displays W frames, adds these frames to IPC queue
+def read_window():
+    return
+
+
+# Stabilizes a batch of W frames
+def stabilize_window():
     return
 
 
@@ -126,8 +137,10 @@ def write_output(cap, out, B_transforms, shape, frame_limits):
 def main(args):
     # If a live camera feed specified
     if args.camera:
-        # Right now configured for webcam only, can be modified easliy
+        # Right now configured for webcam only, can be modified to work for an IP camera easily
         cap = cv.VideoCapture(0)
+        # Generic input stream name
+        in_name = 'camera'
     # Else use the cmd line input file name
     else:
         file = args.file
@@ -136,14 +149,25 @@ def main(args):
         # Read input video
         cap = cv.VideoCapture(file)
     # crop_ratio = 0.7
+    # Crop ratio that would prevent black corners from entering the frame
     crop_ratio = args.crop_ratio
-    # Get width and height of frames in video stream from cap object
+    # Get the window size to be used - called W
+    W = args.window
+    # Get width and height of frames in the cap object video stream
     w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
     # Define the codec for output video to be saved to disk
     fourcc = cv.VideoWriter_fourcc(*'MPEG')
-    # Get input fps, use same for output
+    # Get input fps, use the same frame rate for writing the output
+    # Thought: Maybe shift all of this near the output writer object, invoking only if
+    # the user requests saving the stabilized file to disk
     fps = int(cap.get(cv.CAP_PROP_FPS))
+    # Pipe for IPC of read in raw frames between
+    # Process to load frames into memory and display them in an openCV window
+    load_process = Process(name='load_window', target=read_window, args=(cap, fps, W))
+    # Process to stabilize a window of frames, display the results
+    # in a window and write the stabilized file to disk
+    stabilize_process = Process(name='stabilize_window', target=stabilze_window, args=())
     # Pre-define transformation-store array
     # Uses 3 parameters since it is purely a coordinate transform
     # A collection of n_frames number of  homography matrices
