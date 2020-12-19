@@ -101,6 +101,8 @@ def write_output(cap, out, B_transforms, shape, frame_limits):
     for i in range(n_frames):
         # Read the first/next frame
         success, frame = cap.read()
+        cv.imshow("Before and After", frame)
+        cv.waitKey(10)
         # If there is not next frame to read, exit display loop
         if not success:
             break
@@ -116,8 +118,8 @@ def write_output(cap, out, B_transforms, shape, frame_limits):
         # if frame_out.shape[1] > 1920:
         # frame_out = cv.resize(frame_out, (frame_out.shape[1], frame_out.shape[0]))
         # Display the result in a window before writing it to file
-        # cv.imshow("Before and After", frame_out)
-        # cv.waitKey(10)
+        cv.imshow("Before and After", frame_out)
+        cv.waitKey(10)
         out.write(frame_out)
         return
 

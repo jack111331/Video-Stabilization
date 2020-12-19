@@ -1,9 +1,16 @@
 # Video Stabilization
 
+<p align="center">
+  <img src="media/VidStab.gif" width="700"/>
+  <br>
+<b>A stabilization result using the L1 optimal camera paths technique</b>
+</p>
+
 Methods Implemented:
 1. **Averaging based method:** The first and simplest method considered is to simply smooth out the camera path using an averaging operation on the camera path. This asks like a low pass filter rejecting high frequency jitter.
 2. **L1 Optimal Camera Paths:** This method uses a Linear Programming formulation to smoothen out the camera path. It is successful in removing low frequency movements in addition to the high frequency movement. 
-3. **Subspace Video Stabilization:** 
+3. **Subspace Video Stabilization:**: Under progress.
+4. **Deep Video Stabilization**: A recent data driven deep learning based approach.  
 
 
 Videographers make use of camera stabilization gimbals to prevent physical disturbances from deteriorating their recorded footage. However, these equipment are not perfect in the sense that low frequency disturbances from actions such as walking, running or rolling on bumpy surfaces are not filtered out by such stabilization hardware.
