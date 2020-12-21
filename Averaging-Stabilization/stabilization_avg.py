@@ -1,9 +1,25 @@
 # Import numpy and OpenCV
 import numpy as np
 import cv2 as cv
+import argparse
 
+
+# Pass command line inputs for the stabilization procedure
+parser = argparse.ArgumentParser()
+# Add input file path, default type is string
+parser.add_argument("-i", action="store", dest="file")
+# Crop ratio to avoid black corners creeping into the main stabilized video frame area
+parser.add_argument("-crop-ratio", action="store", dest="crop_ratio", type=float)
+# Boolean argument that is True if the flag --trajPlot is passed
+parser.add_argument("--trajPlot", action="store_true")
+# read cmd line arguments
+args_read = parser.parse_args()
+
+file = args_read.file
+# Extract input file name sans extension
+in_name = file.split('/')[-1].split('.')[0]
 # Read input video
-cap = cv.VideoCapture('0.avi')
+cap = cv.VideoCapture(file)
 
 # Get frame count
 n_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
@@ -169,3 +185,4 @@ for i in range(n_frames - 2):
     cv.imshow("Before and After", frame_out)
     cv.waitKey(10)
     out.write(frame_out)
+

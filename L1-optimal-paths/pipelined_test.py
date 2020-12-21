@@ -4,7 +4,6 @@ import multiprocessing as mp
 
 
 def control_expt(connection_obj, q_obj, expt_dur):
-
     def elapsed_time(start_time):
         return time.clock()-start_time
 
